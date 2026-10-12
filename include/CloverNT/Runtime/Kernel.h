@@ -82,7 +82,9 @@ CloverNT_KERNEL_API void CloverNT_KERNEL_CALL               CloverEventUnsubscri
 CloverNT_KERNEL_API void CloverNT_KERNEL_CALL               CloverEventEmit(CloverEvent* event);
 
 CloverNT_KERNEL_API const char* CloverNT_KERNEL_CALL CloverPluginsDirectory();
-CloverNT_KERNEL_API const char* CloverNT_KERNEL_CALL CloverQqVersion();
+
+CloverNT_KERNEL_API const char* CloverNT_KERNEL_CALL CloverQQVersion();
+CloverNT_KERNEL_API const char* CloverNT_KERNEL_CALL CloverSelfVersion();
 
 #if defined(__cplusplus)
 } /* extern "C" */

@@ -441,7 +441,12 @@ private:
 }
 
 [[nodiscard]] inline std::string_view qqVersion() noexcept {
-    const char* ver = CloverQqVersion();
+    const char* ver = CloverQQVersion();
+    return ver != nullptr ? std::string_view{ver} : std::string_view{};
+}
+
+[[nodiscard]] inline std::string_view selfVersion() noexcept {
+    const char* ver = CloverSelfVersion();
     return ver != nullptr ? std::string_view{ver} : std::string_view{};
 }
 
