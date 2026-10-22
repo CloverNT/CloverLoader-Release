@@ -47,5 +47,3 @@ set_target_properties(CloverNT_Runtime PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES "${_clover_root}/include"
         INTERFACE_COMPILE_DEFINITIONS "${_clover_system};${_clover_arch}")
 add_library(CloverNT::Runtime ALIAS CloverNT_Runtime)
-
-message(STATUS "CloverNT::Runtime SDK (${_clover_osdir}-${_clover_archdir}) from ${_clover_root}")
