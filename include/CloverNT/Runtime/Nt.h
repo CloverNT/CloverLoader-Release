@@ -17,6 +17,14 @@ CloverNT_KERNEL_API CloverBool CloverNT_KERNEL_CALL CloverPacketReady();
 CloverNT_KERNEL_API CloverBool CloverNT_KERNEL_CALL CloverPacketSend(
         const char* command, size_t commandLength, const uint8_t* body, size_t bodyLength, uint32_t* outSequence);
 
+CloverNT_KERNEL_API CloverBool CloverNT_KERNEL_CALL CloverPacketCall(const char*      command,
+                                                                     size_t           commandLength,
+                                                                     const uint8_t*   body,
+                                                                     size_t           bodyLength,
+                                                                     uint32_t         timeoutMs,
+                                                                     CloverPacketSink sink,
+                                                                     void*            user);
+
 CloverNT_KERNEL_API CloverBool CloverNT_KERNEL_CALL CloverPacketReceiveByCommand(
         const char* command, size_t commandLength, uint32_t timeoutMs, CloverPacketSink sink, void* user);
 
