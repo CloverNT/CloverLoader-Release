@@ -33,10 +33,13 @@ typedef int32_t  CloverBool;         /* 0 = false, non-zero = true             *
 
 CloverNT_KERNEL_API CloverHook CloverNT_KERNEL_CALL CloverHookInline(CloverAddress address,
                                                                      void*         detour,
+                                                                     int32_t       priority,
                                                                      void**        outOriginal);
 CloverNT_KERNEL_API CloverHook CloverNT_KERNEL_CALL CloverHookImport(const char* module,
+                                                                     const char* importModule,
                                                                      const char* symbol,
                                                                      void*       detour,
+                                                                     int32_t     priority,
                                                                      void**      outOriginal);
 CloverNT_KERNEL_API CloverBool CloverNT_KERNEL_CALL CloverHookRemove(CloverHook hook);
 

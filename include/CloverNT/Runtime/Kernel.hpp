@@ -29,28 +29,12 @@ class InlineHook {
 public:
     InlineHook() = default;
 
-    [[nodiscard]] static InlineHook install(const std::uintptr_t target, Sig* detour) noexcept {
-        void*            original = nullptr;
-        const CloverHook handle   = CloverHookInline(target, reinterpret_cast<void*>(detour), &original);
-        return adopt(handle, static_cast<Sig*>(original));
-    }
+    InlineHook(const std::uintptr_t target, Sig* detour, const std::int32_t priority = 0) noexcept
+        : mHandle(CloverHookInline(target, reinterpret_cast<void*>(detour), priority, slot())) {}
 
-    [[nodiscard]] static InlineHook installImport(const char* module, const char* symbol, Sig* detour) noexcept {
-        void*            original = nullptr;
-        const CloverHook handle   = CloverHookImport(module, symbol, reinterpret_cast<void*>(detour), &original);
-        return adopt(handle, static_cast<Sig*>(original));
-    }
-
-    InlineHook(InlineHook&& other) noexcept
-        : mHandle(std::exchange(other.mHandle, 0)), mOriginal(std::exchange(other.mOriginal, nullptr)) {}
-
-    InlineHook& operator=(InlineHook&& other) noexcept {
-        if (this != &other) {
-            reset();
-            mHandle   = std::exchange(other.mHandle, 0);
-            mOriginal = std::exchange(other.mOriginal, nullptr);
-        }
-        return *this;
+    [[nodiscard]] static InlineHook
+    install(const std::uintptr_t target, Sig* detour, const std::int32_t priority = 0) noexcept {
+        return InlineHook(target, detour, priority);
     }
 
     InlineHook(const InlineHook&)            = delete;
@@ -76,7 +60,7 @@ public:
     }
 
     template <typename... Args>
-    auto original(Args&&... args) const -> decltype(mOriginal(std::forward<Args>(args)...)) {
+    auto original(Args&&... args) const -> std::invoke_result_t<Sig*, Args...> {
         return mOriginal(std::forward<Args>(args)...);
     }
 
@@ -85,25 +69,86 @@ public:
     }
 
 private:
-    [[nodiscard]] static InlineHook adopt(CloverHook handle, Sig* original) noexcept {
-        InlineHook hook;
-        hook.mHandle   = handle;
-        hook.mOriginal = original;
-        return hook;
+    [[nodiscard]] auto slot() noexcept -> void** {
+        return reinterpret_cast<void**>(&mOriginal);
     }
 
-    CloverHook mHandle{0};
     Sig*       mOriginal{nullptr};
+    CloverHook mHandle{0};
 };
 
 template <typename Sig>
-[[nodiscard]] InlineHook<Sig> hookInline(std::uintptr_t target, Sig* detour) noexcept {
-    return InlineHook<Sig>::install(target, detour);
+[[nodiscard]] InlineHook<Sig> hookInline(std::uintptr_t target, Sig* detour, const std::int32_t priority = 0) noexcept {
+    return InlineHook<Sig>::install(target, detour, priority);
 }
 
 template <typename Sig>
-[[nodiscard]] InlineHook<Sig> hookImport(const char* module, const char* symbol, Sig* detour) noexcept {
-    return InlineHook<Sig>::installImport(module, symbol, detour);
+class ImportHook {
+public:
+    ImportHook() = default;
+
+    ImportHook(const char*        module,
+               const char*        importModule,
+               const char*        symbol,
+               Sig*               detour,
+               const std::int32_t priority = 0) noexcept
+        : mHandle(CloverHookImport(module, importModule, symbol, reinterpret_cast<void*>(detour), priority, slot())) {}
+
+    [[nodiscard]] static ImportHook install(const char*        module,
+                                            const char*        importModule,
+                                            const char*        symbol,
+                                            Sig*               detour,
+                                            const std::int32_t priority = 0) noexcept {
+        return ImportHook(module, importModule, symbol, detour, priority);
+    }
+
+    ImportHook(const ImportHook&)            = delete;
+    ImportHook& operator=(const ImportHook&) = delete;
+
+    ~ImportHook() {
+        reset();
+    }
+
+    void reset() noexcept {
+        if (mHandle != 0) {
+            CloverHookRemove(mHandle);
+            mHandle   = 0;
+            mOriginal = nullptr;
+        }
+    }
+
+    [[nodiscard]] bool valid() const noexcept {
+        return mHandle != 0;
+    }
+    [[nodiscard]] explicit operator bool() const noexcept {
+        return valid();
+    }
+
+    template <typename... Args>
+    auto original(Args&&... args) const -> std::invoke_result_t<Sig*, Args...> {
+        return mOriginal(std::forward<Args>(args)...);
+    }
+
+    [[nodiscard]] Sig* originalFn() const noexcept {
+        return mOriginal;
+    }
+
+private:
+    [[nodiscard]] auto slot() noexcept -> void** {
+        return reinterpret_cast<void**>(&mOriginal);
+    }
+
+    Sig*       mOriginal{nullptr};
+    CloverHook mHandle{0};
+};
+
+template <typename Sig>
+[[nodiscard]] ImportHook<Sig> hookImport(const char*        module,
+                                         const char*        importModule,
+                                         const char*        symbol,
+                                         Sig*               detour,
+                                         const std::int32_t priority = 0) noexcept {
+    return ImportHook<Sig>::install(module, importModule, symbol, detour, priority);
 }
 
 template <typename Sig>
@@ -284,7 +329,7 @@ public:
     Detour() = default;
 
     template <typename D>
-    [[nodiscard]] static Detour install(const std::uintptr_t target, D&& detour) {
+    [[nodiscard]] static Detour install(const std::uintptr_t target, D&& detour, const std::int32_t priority = 0) {
         Detour self;
         if (target == 0) {
             return self;
@@ -295,7 +340,7 @@ public:
             return self;
         }
         const auto [index, raw] = *allocation;
-        const CloverHook handle = CloverHookInline(target, reinterpret_cast<void*>(raw), state->slot());
+        const CloverHook handle = CloverHookInline(target, reinterpret_cast<void*>(raw), priority, state->slot());
         if (handle == 0) {
             Detail::DetourSlots<Sig>::instance().release(index);
             return self;
@@ -355,8 +400,8 @@ private:
 };
 
 template <typename Sig, typename D>
-[[nodiscard]] Detour<Sig> hookDetour(const std::uintptr_t target, D&& detour) {
-    return Detour<Sig>::install(target, std::forward<D>(detour));
+[[nodiscard]] Detour<Sig> hookDetour(const std::uintptr_t target, D&& detour, const std::int32_t priority = 0) {
+    return Detour<Sig>::install(target, std::forward<D>(detour), priority);
 }
 
 

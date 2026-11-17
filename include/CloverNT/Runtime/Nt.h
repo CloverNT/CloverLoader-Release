@@ -35,6 +35,12 @@ CloverNT_KERNEL_API CloverBool CloverNT_KERNEL_CALL CloverPacketReceiveBySequenc
 
 CloverNT_KERNEL_API CloverBool CloverNT_KERNEL_CALL CloverPacketCredential(CloverPacketSink sink, void* user);
 
+#define CLOVER_FAMILY_PACKET 0x00000001u
+#define CLOVER_FAMILY_CREDENTIAL 0x00000002u
+#define CLOVER_FAMILY_ALL 0x00000003u
+
+CloverNT_KERNEL_API uint32_t CloverNT_KERNEL_CALL CloverGetLocked(void);
+
 #if defined(__cplusplus)
 } /* extern "C" */
 #endif
